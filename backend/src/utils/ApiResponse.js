@@ -1,0 +1,12 @@
+//standardize response objects for api respponses
+
+class ApiResponse {
+  constructor(statusCode, data, message = "Successful") {
+    this.statusCode = statusCode;
+    this.data = data;
+    this.message = message;
+    this.success = statusCode < 400;
+  }
+}
+
+export { ApiResponse };
