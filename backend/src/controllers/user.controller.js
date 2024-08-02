@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -172,8 +173,11 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id, // _id returns a string, which is automatically converted to object id by mongoose for mongoDB
     {
-      $set: {
-        refreshToken: undefined,
+      // $set: {
+      //   refreshToken: undefined,
+      // },
+      $unset: {
+        refreshToken: 1, // this removes the field from the document
       },
     },
     {
@@ -459,7 +463,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
             },
           },
           {
-            addFields: {
+            $addFields: {
               owner: {
                 $first: "$owner", // add first array element as owner field (overwrites the owner field)
               },
