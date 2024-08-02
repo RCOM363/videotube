@@ -9,6 +9,8 @@ import {
   updateAccountDetails,
   updateUserAvatar,
   updateUserCoverImage,
+  getChannelProfile,
+  getWatchHistory,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -34,25 +36,19 @@ router.route("/login").post(loginUser);
 
 // secure routes
 router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/change-password").post(verifyJWT, changeCurrentPassword);
 router.route("/refresh-token").post(refreshAccessToken);
-router.route("/get-current-user").post(verifyJWT, getCurrentUser);
-router.route("/update-account-details").post(verifyJWT, updateAccountDetails);
-router.route("/update-user-avatar").post(
-  upload.single({
-    name: "avatar",
-    maxCount: 1,
-  }),
-  verifyJWT,
+router.route("/change-password").post(verifyJWT, changeCurrentPassword);
+router.route("/current-user").get(verifyJWT, getCurrentUser);
+router.route("/update-account").patch(verifyJWT, updateAccountDetails); // use patch when updating few values
+router.route("/update-avatar").patch(
+  verifyJWT, // the user should be verifies before sending the file
+  upload.single("avatar"),
   updateUserAvatar
 );
-router.route("/update-user-coverimage").post(
-  upload.single({
-    name: "coverImage",
-    maxCount: 1,
-  }),
-  verifyJWT,
-  updateUserCoverImage
-);
+router
+  .route("/update-coverimage")
+  .patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage);
+router.route("/channel/:username").get(verifyJWT, getChannelProfile);
+router.route("/watch-history").get(verifyJWT, getWatchHistory);
 
 export default router;

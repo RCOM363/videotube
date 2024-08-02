@@ -170,7 +170,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
-    req.user._id,
+    req.user._id, // _id returns a string, which is automatically converted to object id by mongoose for mongoDB
     {
       $set: {
         refreshToken: undefined,
@@ -372,7 +372,7 @@ const getChannelProfile = asyncHandler(async (req, res) => {
       },
     },
     {
-      // pipeline 3 - get documents containg user id in subriber field (subscribed to)
+      // pipeline 3 - get documents containg user id in subscriber field (subscribed to)
       $lookup: {
         from: "subcriptions",
         localField: "_id",
@@ -418,11 +418,65 @@ const getChannelProfile = asyncHandler(async (req, res) => {
     throw new ApiError(404, "channel not does not exists");
   }
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, channel[0], "user channel fetched successfully ")
-    );
+  return res.status(200).json(
+    new ApiResponse(200, channel[0], "user channel fetched successfully ")
+    // aggregate pipeline returns an array, and the data is present in the 1st index of the array
+  );
+});
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id),
+        // aggreate pipelines are executed directly by mongoDB so we need to manually convert the _id which is string to object id
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        // sub pipeline
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              // select what values we need in owner field
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            addFields: {
+              owner: {
+                $first: "$owner", // add first array element as owner field (overwrites the owner field)
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      user[0].watchHistory, // return only watch history from the user document
+      "user watch history fetched successfully"
+    )
+  );
 });
 
 export {
@@ -436,4 +490,5 @@ export {
   updateUserAvatar,
   updateUserCoverImage,
   getChannelProfile,
+  getWatchHistory,
 };
